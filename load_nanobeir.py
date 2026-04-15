@@ -302,17 +302,19 @@ def build_settings() -> rg.Settings:
             ),
         ],
         questions=[
-            rg.RatingQuestion(
+            rg.LabelQuestion(
                 name="quality_score",
-                title="Ocena kvaliteta prevoda",
+                title="Ocena kvaliteta prevoda (izaberite jednu ocenu)",
                 description=(
-                    "1 = Potpuno netačan prevod, "
-                    "2 = Veće greške, "
-                    "3 = Adekvatan sa manjim greškama, "
-                    "4 = Zadovoljavajuć kvalitet, "
-                    "5 = Odličan kvalitet"
+                    "Lošije ← 1  2  3  4  5 → Bolje"
                 ),
-                values=[1, 2, 3, 4, 5],
+                labels=[
+                    "1 – Potpuno netačan",
+                    "2 – Veće greške",
+                    "3 – Adekvatan",
+                    "4 – Dobar",
+                    "5 – Odličan",
+                ],
                 required=True,
             ),
             rg.TextQuestion(
