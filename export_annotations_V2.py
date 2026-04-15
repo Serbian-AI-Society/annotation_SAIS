@@ -28,7 +28,7 @@ def main():
     parser.add_argument("--api-url", default=os.getenv("ARGILLA_API_URL"))
     parser.add_argument("--api-key", default=os.getenv("ARGILLA_API_KEY"))
     parser.add_argument("--workspace", default="argilla")
-    parser.add_argument("--dataset-name", default="translation-annotation-sr-v2")
+    parser.add_argument("--dataset-name", default="NanoBEIR-sr")
     args = parser.parse_args()
 
     if not args.api_url or not args.api_key:

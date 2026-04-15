@@ -133,7 +133,7 @@ Ponovo pročitajte samo tekst na srpskom, i proverite:
 1 – Potpuno netačan prevod: Prevod ne prenosi značenje originalnog teksta.
 2 – Prevod sadrži veće greške: Prevod menja značenje ili ključna terminologija je pogrešno prevedena.
 3 – Adekvatan prevod sa manjim greškama: Tačno prenosi značenje, ali sadrži greške koje mogu uticati na razumevanje.
-4 – Zadovoljavajuć kvalitet: Potpuno i tačno prenosi značenje. Sadrži manje stilske greške koje ne utiču na razumevanje.
+4 – Dobar kvalitet: Potpuno i tačno prenosi značenje. Sadrži manje stilske greške koje ne utiču na razumevanje.
 5 – Odličan kvalitet: U potpunosti prenosi značenje. Prirodan srpski jezik, bez gramatičkih ili stilskih grešaka.
 """
 
@@ -153,7 +153,6 @@ BENCHMARKS = [
         "en_hub": "BeIR/arguana",
         "en_corpus_split": "corpus",
         "en_queries_split": "queries",
-        "argilla_name": "NanoArguAna-sr",
     },
     {
         "name": "NanoTouche2020",
@@ -163,7 +162,6 @@ BENCHMARKS = [
         "en_hub": "BeIR/webis-touche2020",
         "en_corpus_split": "corpus",
         "en_queries_split": "queries",
-        "argilla_name": "NanoTouche2020-sr",
     },
     {
         "name": "NanoSciFact",
@@ -173,7 +171,6 @@ BENCHMARKS = [
         "en_hub": "BeIR/scifact",
         "en_corpus_split": "corpus",
         "en_queries_split": "queries",
-        "argilla_name": "NanoSciFact-sr",
     },
     {
         "name": "NanoSCIDOCS",
@@ -183,7 +180,6 @@ BENCHMARKS = [
         "en_hub": "BeIR/scidocs",
         "en_corpus_split": "corpus",
         "en_queries_split": "queries",
-        "argilla_name": "NanoSCIDOCS-sr",
     },
     {
         "name": "NanoNQ",
@@ -193,7 +189,6 @@ BENCHMARKS = [
         "en_hub": "BeIR/nq",
         "en_corpus_split": "corpus",
         "en_queries_split": "queries",
-        "argilla_name": "NanoNQ-sr",
     },
     {
         "name": "NanoNFCorpus",
@@ -203,7 +198,6 @@ BENCHMARKS = [
         "en_hub": "BeIR/nfcorpus",
         "en_corpus_split": "corpus",
         "en_queries_split": "queries",
-        "argilla_name": "NanoNFCorpus-sr",
     },
     {
         "name": "NanoMSMARCO",
@@ -213,7 +207,6 @@ BENCHMARKS = [
         "en_hub": "BeIR/msmarco",
         "en_corpus_split": "corpus",
         "en_queries_split": "queries",
-        "argilla_name": "NanoMSMARCO-sr",
     },
     {
         "name": "NanoFiQA2018",
@@ -223,7 +216,6 @@ BENCHMARKS = [
         "en_hub": "BeIR/fiqa",
         "en_corpus_split": "corpus",
         "en_queries_split": "queries",
-        "argilla_name": "NanoFiQA2018-sr",
     },
     {
         "name": "NanoHotpotQA",
@@ -233,7 +225,6 @@ BENCHMARKS = [
         "en_hub": "BeIR/hotpotqa",
         "en_corpus_split": "corpus",
         "en_queries_split": "queries",
-        "argilla_name": "NanoHotpotQA-sr",
     },
     {
         "name": "NanoFEVER",
@@ -243,7 +234,6 @@ BENCHMARKS = [
         "en_hub": "BeIR/fever",
         "en_corpus_split": "corpus",
         "en_queries_split": "queries",
-        "argilla_name": "NanoFEVER-sr",
     },
     {
         "name": "NanoDBPedia",
@@ -253,7 +243,6 @@ BENCHMARKS = [
         "en_hub": "BeIR/dbpedia-entity",
         "en_corpus_split": "corpus",
         "en_queries_split": "queries",
-        "argilla_name": "NanoDBPedia-sr",
     },
     {
         "name": "NanoQuoraRetrieval",
@@ -263,7 +252,6 @@ BENCHMARKS = [
         "en_hub": "BeIR/quora",
         "en_corpus_split": "corpus",
         "en_queries_split": "queries",
-        "argilla_name": "NanoQuoraRetrieval-sr",
     },
     {
         # Only exists as a split inside NanoBEIR-sr (no individual bm25 dataset).
@@ -276,7 +264,6 @@ BENCHMARKS = [
         "en_hub": "BeIR/climate-fever",
         "en_corpus_split": "corpus",
         "en_queries_split": "queries",
-        "argilla_name": "NanoClimateFEVER-sr",
     },
 ]
 
@@ -306,7 +293,7 @@ def build_settings() -> rg.Settings:
                 name="quality_score",
                 title="Ocena kvaliteta prevoda (izaberite jednu ocenu)",
                 description=(
-                    "Lošije ← 1  2  3  4  5 → Bolje"
+                    "Detaljan opis svake ocene dostupan je u smernicama (Guidelines)."
                 ),
                 labels=[
                     "1 – Potpuno netačan",

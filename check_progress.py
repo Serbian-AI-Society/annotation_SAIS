@@ -49,6 +49,7 @@ def fetch_status_counts(dataset: rg.Dataset) -> dict:
     Returns:
         counts[benchmark][record_type][status] = int
         where status is one of: "pending", "completed", "discarded"
+        ("completed" = min_submitted responses received; "discarded" = annotator skipped)
     """
     counts: dict = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
 
