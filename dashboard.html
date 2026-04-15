@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Translation Annotation Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; padding: 24px; }
+    .header { text-align: center; margin-bottom: 32px; }
+    .header h1 { font-size: 24px; color: #f8fafc; margin-bottom: 4px; }
+    .header p { color: #94a3b8; font-size: 14px; }
+    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .card { background: #1e293b; border-radius: 12px; padding: 20px; }
+    .card-label { font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+    .card-value { font-size: 32px; font-weight: 700; color: #f8fafc; margin-top: 4px; }
+    .card-sub { font-size: 13px; color: #64748b; margin-top: 2px; }
+    .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+    .chart-box { background: #1e293b; border-radius: 12px; padding: 20px; }
+    .chart-box h3 { font-size: 14px; color: #94a3b8; margin-bottom: 12px; }
+    .full-width { grid-column: 1 / -1; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 8px 12px; color: #94a3b8; border-bottom: 1px solid #334155; font-weight: 500; }
+    td { padding: 8px 12px; border-bottom: 1px solid #1e293b; }
+    .q-low { color: #ef4444; font-weight: 600; }
+    .q-med { color: #f59e0b; font-weight: 600; }
+    .q-high { color: #22c55e; font-weight: 600; }
+    .progress-bar { width: 100%; height: 8px; background: #334155; border-radius: 4px; overflow: hidden; margin-top: 8px; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, #3b82f6, #22c55e); border-radius: 4px; transition: width 0.5s; }
+    .annotator-table { margin-top: 8px; }
+    .annotator-table td { padding: 6px 12px; }
+</style>
+</head>
+<body>
+<div class="header">
+    <h1>Translation Annotation Dashboard</h1>
+    <p>Serbian-AI-Society / translation-annotation-sr &mdash; Generated 2026-04-02T21:16:34.960535Z</p>
+</div>
+
+<div class="grid">
+    <div class="card">
+        <div class="card-label">Total Records</div>
+        <div class="card-value">100</div>
+    </div>
+    <div class="card">
+        <div class="card-label">Completed</div>
+        <div class="card-value">6</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:6.0%"></div></div>
+        <div class="card-sub">6.0% complete</div>
+    </div>
+    <div class="card">
+        <div class="card-label">Total Annotations</div>
+        <div class="card-value">9</div>
+        <div class="card-sub">across 2 annotators</div>
+    </div>
+    <div class="card">
+        <div class="card-label">Modification Rate</div>
+        <div class="card-value">0%</div>
+        <div class="card-sub">0 modified, 9 accepted</div>
+    </div>
+</div>
+
+<div class="charts">
+    <div class="chart-box">
+        <h3>Quality Score Distribution</h3>
+        <canvas id="qualityChart"></canvas>
+    </div>
+    <div class="chart-box">
+        <h3>Annotations per Annotator</h3>
+        <canvas id="annotatorChart"></canvas>
+    </div>
+    <div class="chart-box">
+        <h3>Quality Scores by Annotator</h3>
+        <canvas id="annotatorQualityChart"></canvas>
+    </div>
+    <div class="chart-box">
+        <h3>Annotator Details</h3>
+        <table class="annotator-table">
+            <thead>
+                <tr><th>Annotator</th><th>Done</th><th>High</th><th>Medium</th><th>Low</th><th>Modified</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>MihaPesic</td>
+                    <td>3</td>
+                    <td class="q-high">0</td>
+                    <td class="q-med">0</td>
+                    <td class="q-low">0</td>
+                    <td>0/3</td>
+                </tr><tr>
+                    <td>teami12</td>
+                    <td>6</td>
+                    <td class="q-high">0</td>
+                    <td class="q-med">0</td>
+                    <td class="q-low">0</td>
+                    <td>0/6</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="chart-box full-width" style="margin-bottom:24px;">
+    <h3>Recent Annotations</h3>
+    <table>
+        <thead>
+            <tr><th>Annotator</th><th>Quality</th><th>Modified</th><th>Source Text</th></tr>
+        </thead>
+        <tbody>
+            
+        <tr>
+            <td>MihaPesic</td>
+            <td><span class="">N/A</span></td>
+            <td>&#10003;</td>
+            <td title="did us postal rates change">did us postal rates change...</td>
+        </tr>
+        <tr>
+            <td>MihaPesic</td>
+            <td><span class="">N/A</span></td>
+            <td>&#10003;</td>
+            <td title="how do you get an sd card out of a kindle fire">how do you get an sd card out of a kindle fire...</td>
+        </tr>
+        <tr>
+            <td>MihaPesic</td>
+            <td><span class="">N/A</span></td>
+            <td>&#10003;</td>
+            <td title="what does naturally decaffeinated mean">what does naturally decaffeinated mean...</td>
+        </tr>
+        <tr>
+            <td>teami12</td>
+            <td><span class="">N/A</span></td>
+            <td>&#10003;</td>
+            <td title="amazon should I contact seller after a-z opened">amazon should I contact seller after a-z opened...</td>
+        </tr>
+        <tr>
+            <td>teami12</td>
+            <td><span class="">N/A</span></td>
+            <td>&#10003;</td>
+            <td title="amazon should I contact seller after a-z opened">amazon should I contact seller after a-z opened...</td>
+        </tr>
+        <tr>
+            <td>teami12</td>
+            <td><span class="">N/A</span></td>
+            <td>&#10003;</td>
+            <td title="where can you find the quetzal bird">where can you find the quetzal bird...</td>
+        </tr>
+        <tr>
+            <td>teami12</td>
+            <td><span class="">N/A</span></td>
+            <td>&#10003;</td>
+            <td title="where can you find the quetzal bird">where can you find the quetzal bird...</td>
+        </tr>
+        <tr>
+            <td>teami12</td>
+            <td><span class="">N/A</span></td>
+            <td>&#10003;</td>
+            <td title="how do you cite a crs report">how do you cite a crs report...</td>
+        </tr>
+        <tr>
+            <td>teami12</td>
+            <td><span class="">N/A</span></td>
+            <td>&#10003;</td>
+            <td title="how do you cite a crs report">how do you cite a crs report...</td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+<script>
+const qualityCtx = document.getElementById('qualityChart').getContext('2d');
+new Chart(qualityCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ["no data"],
+        datasets: [{
+            data: [0],
+            backgroundColor: ["#6b7280"],
+            borderWidth: 0,
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'bottom', labels: { color: '#94a3b8' } }
+        }
+    }
+});
+
+const annotatorCtx = document.getElementById('annotatorChart').getContext('2d');
+new Chart(annotatorCtx, {
+    type: 'bar',
+    data: {
+        labels: ["MihaPesic", "teami12"],
+        datasets: [{
+            label: 'Annotations',
+            data: [3, 6],
+            backgroundColor: '#3b82f6',
+            borderRadius: 6,
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } },
+            x: { ticks: { color: '#94a3b8' }, grid: { display: false } }
+        },
+        plugins: { legend: { display: false } }
+    }
+});
+
+const aqCtx = document.getElementById('annotatorQualityChart').getContext('2d');
+new Chart(aqCtx, {
+    type: 'bar',
+    data: {
+        labels: ["MihaPesic", "teami12"],
+        datasets: [
+            { label: 'High', data: [0, 0], backgroundColor: '#22c55e', borderRadius: 4 },
+            { label: 'Medium', data: [0, 0], backgroundColor: '#f59e0b', borderRadius: 4 },
+            { label: 'Low', data: [0, 0], backgroundColor: '#ef4444', borderRadius: 4 },
+        ]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            x: { stacked: true, ticks: { color: '#94a3b8' }, grid: { display: false } },
+            y: { stacked: true, ticks: { color: '#94a3b8' }, grid: { color: '#334155' } }
+        },
+        plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8' } } }
+    }
+});
+</script>
+</body>
+</html>
