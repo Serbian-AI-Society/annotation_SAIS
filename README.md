@@ -36,9 +36,10 @@ export ARGILLA_API_KEY="your-api-key"
 | Script | Purpose |
 |--------|---------|
 | `load_nanobeir.py` | Main pipeline — loads all 13 benchmarks into Argilla |
-| `check_progress.py` | Per-benchmark annotation progress dashboard |
+| `check_progress.py` | Per-benchmark annotation progress + per-annotator breakdown |
+| `generate_report.py` | Generate a self-contained HTML annotation dashboard |
+| `manage_annotators.py` | Add / remove annotators by HuggingFace username |
 | `export_annotations_V2.py` | Export completed annotations to HF Hub or JSONL |
-| `setup_dataset_v2.py` | One-off dataset schema creation (called by load_nanobeir.py) |
 
 ### Load / reload data
 
@@ -62,15 +63,29 @@ python load_nanobeir.py --max-pos 5
 python check_progress.py
 ```
 
-Output:
+Prints a per-benchmark progress table and a per-annotator breakdown (total annotations + score distribution).
+
+### Generate HTML report
+
+```bash
+python generate_report.py
 ```
-Benchmark                         Queries        Passages           Total
-                               done/total      done/total      done/total
----------------------------------------------------------------------------
-NanoArguAna                    45/50 (90%)     48/50 (96%)    93/100 (93%)
-NanoTouche2020                  12/50 (24%)    89/467 (19%)  101/517 (20%)
-...
-TOTAL                                                       194/2811 (7%)
+
+Produces `annotation_report.html` and opens it in the browser — a self-contained dashboard with summary cards, benchmark progress bars, per-annotator score distributions, and a full sortable/filterable/searchable annotations table with expandable rows showing all field content. No server or internet connection required.
+
+### Manage annotators
+
+Annotators sign in at the Space URL using their HuggingFace account. After their first login their account exists in Argilla, but they need to be added to the workspace before they can see the dataset.
+
+```bash
+# List all registered users and their workspace access
+python manage_annotators.py list
+
+# Add one or more annotators
+python manage_annotators.py add hf_username1 hf_username2
+
+# Remove an annotator
+python manage_annotators.py remove hf_username
 ```
 
 ### Export annotations

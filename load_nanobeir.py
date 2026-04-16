@@ -64,8 +64,8 @@ from datasets import load_dataset
 CACHE_DIR = Path(__file__).parent / ".beir_cache"
 
 # Corpora too large for row-by-row streaming (IDs scattered throughout millions of rows).
-# For these we use the HuggingFace datasets-server /filter API which runs the SQL
-# WHERE clause server-side — no download required, results return in seconds.
+# For these we download the corpus Parquet file once and filter locally with pyarrow
+# row-group statistics. Results are cached to .beir_cache/ so subsequent runs load instantly.
 API_FETCH_CORPORA = {
     "BeIR/msmarco",
     "BeIR/hotpotqa",
@@ -536,10 +536,10 @@ def _smart_parquet_fetch(en_hub: str, config: str, split: str, ids_set: set) -> 
 
         rgs_to_read: list[int] = []
         for rg_idx in range(meta.num_row_groups):
-            rg = meta.row_group(rg_idx)
+            row_grp = meta.row_group(rg_idx)
             include = True
-            for col_idx in range(rg.num_columns):
-                col = rg.column(col_idx)
+            for col_idx in range(row_grp.num_columns):
+                col = row_grp.column(col_idx)
                 if col.path_in_schema != "_id" or not col.statistics:
                     continue
                 rg_min = str(col.statistics.min)
