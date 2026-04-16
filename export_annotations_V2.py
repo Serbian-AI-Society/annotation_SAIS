@@ -29,6 +29,14 @@ def main():
     parser.add_argument("--api-key", default=os.getenv("ARGILLA_API_KEY"))
     parser.add_argument("--workspace", default="argilla")
     parser.add_argument("--dataset-name", default="NanoBEIR-sr")
+    parser.add_argument(
+        "--min-score", type=int, default=None, metavar="N",
+        help="JSONL only: exclude annotations with quality_score below N (1-5).",
+    )
+    parser.add_argument(
+        "--require-correction", action="store_true",
+        help="JSONL only: exclude annotations where no correction was entered.",
+    )
     args = parser.parse_args()
 
     if not args.api_url or not args.api_key:
@@ -61,6 +69,35 @@ def main():
     if args.to_jsonl:
         print(f"Exporting to JSONL: {args.to_jsonl}")
         records = dataset.records(with_responses=True).to_list(flatten=True)
+
+        total_before = len(records)
+        if args.min_score is not None or args.require_correction:
+            filtered = []
+            no_corr_values = {
+                "no corrections", "no correction",
+                "no corrections needed", "no correction needed",
+            }
+            for rec in records:
+                score_raw = rec.get("quality_score", "") or ""
+                score_str = str(score_raw).strip()
+                score_digit = score_str[0] if score_str and score_str[0].isdigit() else None
+
+                if args.min_score is not None:
+                    if score_digit is None or int(score_digit) < args.min_score:
+                        continue
+
+                if args.require_correction:
+                    correction = (rec.get("corrected_text_sr") or "").strip().lower()
+                    if correction in no_corr_values or not correction:
+                        continue
+
+                filtered.append(rec)
+            print(
+                f"  Filtered: {total_before} → {len(filtered)} records "
+                f"(removed {total_before - len(filtered)} below threshold)"
+            )
+            records = filtered
+
         with open(args.to_jsonl, "w", encoding="utf-8") as f:
             for rec in records:
                 f.write(json.dumps(rec, ensure_ascii=False, default=str) + "\n")

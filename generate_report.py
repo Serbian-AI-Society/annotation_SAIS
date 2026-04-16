@@ -122,6 +122,7 @@ def fetch_data(client: rg.Argilla, dataset: rg.Dataset) -> dict:
                             "correction": "",
                             "comment": "",
                             "date": date_str,
+                            "flagged": False,
                         })
                     elif resp.status.value == "submitted":
                         vals = resp.values or {}
@@ -132,8 +133,26 @@ def fetch_data(client: rg.Argilla, dataset: rg.Dataset) -> dict:
                         correction = (vals.get("corrected_text_sr") or {}).get("value", "") or ""
                         comment = (vals.get("comment") or {}).get("value", "") or ""
 
+                        # Flag contradictory annotation: low score but no correction provided.
+                        # A score of 1-2 means the translation has serious problems, so a
+                        # correction is expected. If none was entered the annotation is suspect.
+                        correction_lower = (correction or "").strip().lower()
+                        no_correction_entered = correction_lower in (
+                            "", "no corrections", "no correction",
+                            "no corrections needed", "no correction needed",
+                        )
+                        flagged = (
+                            score_num.isdigit()
+                            and int(score_num) <= 2
+                            and no_correction_entered
+                        )
+
                         annotator_stats[username]["scores"][score_num] += 1
                         annotator_stats[username]["total"] += 1
+                        if flagged:
+                            annotator_stats[username]["flagged"] = (
+                                annotator_stats[username].get("flagged", 0) + 1
+                            )
 
                         annotations.append({
                             "id": rec_id,
@@ -148,6 +167,7 @@ def fetch_data(client: rg.Argilla, dataset: rg.Dataset) -> dict:
                             "correction": correction,
                             "comment": comment,
                             "date": date_str,
+                            "flagged": flagged,
                         })
 
     # Sort annotations newest first
@@ -155,7 +175,12 @@ def fetch_data(client: rg.Argilla, dataset: rg.Dataset) -> dict:
 
     # Convert defaultdicts to plain dicts for JSON serialisation
     annotator_stats_clean = {
-        u: {"total": v["total"], "scores": dict(v["scores"]), "discarded": v["discarded"]}
+        u: {
+            "total": v["total"],
+            "scores": dict(v["scores"]),
+            "discarded": v["discarded"],
+            "flagged": v.get("flagged", 0),
+        }
         for u, v in sorted(annotator_stats.items(), key=lambda x: -x[1]["total"])
     }
 
@@ -171,12 +196,15 @@ def fetch_data(client: rg.Argilla, dataset: rg.Dataset) -> dict:
         if submitted else None
     )
 
+    n_flagged = sum(1 for a in annotations if a.get("flagged"))
+
     return {
         "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
         "dataset": dataset.name,
         "total_records": total_records,
         "total_done": total_done,
         "avg_score": avg_score,
+        "n_flagged": n_flagged,
         "benchmark_names": BENCHMARK_NAMES,
         "benchmark_stats": benchmark_stats,
         "annotator_stats": annotator_stats_clean,
@@ -207,13 +235,15 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   header .meta { font-size: 12px; opacity: 0.75; text-align: right; }
 
   /* Cards */
-  .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
   .card { background: white; border-radius: 10px; padding: 20px 24px;
           box-shadow: 0 1px 4px rgba(0,0,0,.08); }
   .card-value { font-size: 32px; font-weight: 700; color: #1e3a5f; line-height: 1; }
   .card-label { font-size: 12px; color: #64748b; margin-top: 6px; text-transform: uppercase;
                 letter-spacing: .5px; }
   .card-sub { font-size: 13px; color: #94a3b8; margin-top: 2px; }
+  .card-warn { border-left: 4px solid #dc2626; }
+  .card-warn .card-value { color: #dc2626; }
 
   /* Sections */
   section { background: white; border-radius: 10px; padding: 24px;
@@ -253,6 +283,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .score-5 { background: #bbf7d0; color: #14532d; }
   .score-d { background: #f1f5f9; color: #64748b; }
   .score-q { background: #f1f5f9; color: #64748b; }
+  .flag-badge { display:inline-block; padding:1px 7px; border-radius:10px;
+                font-size:11px; font-weight:700; background:#fee2e2; color:#991b1b; }
 
   /* Type badge */
   .type-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px;
@@ -338,6 +370,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       <th>Avg score</th>
       <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th>
       <th>Skipped</th>
+      <th>Flagged</th>
     </tr></thead>
     <tbody id="ann-body"></tbody>
   </table>
@@ -362,6 +395,9 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       <option value="-">Discarded</option>
     </select>
     <input id="f-search" type="text" placeholder="&#128269; Search text...">
+    <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;white-space:nowrap;color:#1e293b">
+      <input type="checkbox" id="f-flagged"> &#9888; Flagged only
+    </label>
     <span class="count-label" id="ann-count"></span>
   </div>
   <div class="click-hint" style="margin-bottom:12px">&#9660; Click any row to expand full text</div>
@@ -406,14 +442,16 @@ document.getElementById("hdr-meta").innerHTML =
   const annotators = Object.keys(DATA.annotator_stats).length;
   const submitted = DATA.annotations.filter(a => /^[1-5]$/.test(a.score));
   const avgScore = DATA.avg_score ? DATA.avg_score.toFixed(2) : "—";
+  const nFlagged = DATA.n_flagged || 0;
   const cards = [
     {v: DATA.total_records, l: "Total records", s: ""},
     {v: DATA.total_done + " (" + pct + "%)", l: "Annotated", s: "of " + DATA.total_records},
     {v: annotators, l: "Annotators", s: submitted.length + " submissions"},
     {v: avgScore, l: "Avg quality score", s: "across all submissions"},
+    {v: nFlagged, l: "Quality flags", s: "score \u22642 with no correction", warn: nFlagged > 0},
   ];
   document.getElementById("cards").innerHTML = cards.map(c =>
-    `<div class="card"><div class="card-value">${esc(c.v)}</div>
+    `<div class="card${c.warn ? ' card-warn' : ''}"><div class="card-value">${esc(String(c.v))}</div>
      <div class="card-label">${esc(c.l)}</div>
      <div class="card-sub">${esc(c.s)}</div></div>`
   ).join("");
@@ -465,6 +503,7 @@ document.getElementById("hdr-meta").innerHTML =
       <td>${avg}</td>
       ${[1,2,3,4,5].map(i=>`<td>${scores[i]||0}</td>`).join("")}
       <td>${st.discarded||0}</td>
+      <td>${(st.flagged||0) > 0 ? `<span class="flag-badge">${st.flagged}</span>` : '0'}</td>
     </tr>`;
   });
   document.getElementById("ann-body").innerHTML = rows.length
@@ -491,11 +530,13 @@ function getFiltered() {
   const fS = document.getElementById("f-score").value;
   const fQ = document.getElementById("f-search").value.toLowerCase().trim();
 
+  const fFlagged = document.getElementById("f-flagged").checked;
   return DATA.annotations.filter(a => {
     if (fA && a.annotator !== fA) return false;
     if (fB && a.benchmark !== fB) return false;
     if (fT && a.record_type !== fT) return false;
     if (fS && a.score !== fS) return false;
+    if (fFlagged && !a.flagged) return false;
     if (fQ && ![a.source_en, a.translation_sr, a.correction, a.comment, a.annotator, a.benchmark]
                .some(t => (t||"").toLowerCase().includes(fQ))) return false;
     return true;
@@ -542,7 +583,7 @@ function renderTable() {
       <td><strong>${esc(a.annotator)}</strong></td>
       <td style="font-size:12px">${esc(a.benchmark)}</td>
       <td><span class="type-badge type-${esc(a.record_type)}">${esc(a.record_type)}</span></td>
-      <td><span class="badge ${SCORE_COLOR[a.score]||'score-q'}">${esc(scoreLabel(a.score))}</span></td>
+      <td><span class="badge ${SCORE_COLOR[a.score]||'score-q'}">${esc(scoreLabel(a.score))}</span>${a.flagged ? ' <span class="flag-badge">&#9888;</span>' : ''}</td>
       <td><span class="trunc">${esc(trunc(a.source_en, 100))}</span></td>
       <td>${corrPreview}</td>
       <td><span class="trunc">${esc(trunc(a.comment, 80))}</span></td>
@@ -571,6 +612,7 @@ function toggleExpand(row, idx) {
   const isNoCorr = (ann.correction||"").trim().toLowerCase() === "no corrections";
   const corrClass = isNoCorr ? "text-box no-correction" : "text-box correction-made";
   expandRow.querySelector("td").innerHTML = `
+    ${ann.flagged ? `<div style="padding:10px 24px 0"><div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:8px;padding:10px 14px;font-size:13px;color:#991b1b"><strong>&#9888; Quality flag:</strong> Score &le;2 but no correction was entered &mdash; this annotation may need review.</div></div>` : ''}
     <div class="expand-content">
       <div class="expand-col">
         <h4>&#127468;&#127463; English Source</h4>
@@ -608,6 +650,7 @@ document.querySelectorAll("th.sortable").forEach(th => {
 ["f-annotator","f-benchmark","f-type","f-score","f-search"].forEach(id => {
   document.getElementById(id).addEventListener("input", renderTable);
 });
+document.getElementById("f-flagged").addEventListener("change", renderTable);
 
 // Initial render
 renderTable();
