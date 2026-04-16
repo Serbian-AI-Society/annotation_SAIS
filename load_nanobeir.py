@@ -271,7 +271,16 @@ BENCHMARKS = [
 # ---------------------------------------------------------------------------
 # Argilla dataset settings (same schema for all 13 benchmarks)
 # ---------------------------------------------------------------------------
-def build_settings() -> rg.Settings:
+def build_settings(distribution=None) -> rg.Settings:
+    """
+    Build Argilla dataset settings (shared schema for all datasets).
+
+    distribution: pass rg.OverlapTaskDistribution(min_submitted=N) for a
+    calibration dataset where every annotator must annotate every record.
+    Defaults to rg.TaskDistribution(min_submitted=1) — one annotator per record.
+    """
+    if distribution is None:
+        distribution = rg.TaskDistribution(min_submitted=1)
     return rg.Settings(
         guidelines=GUIDELINES,
         fields=[
@@ -343,6 +352,7 @@ def build_settings() -> rg.Settings:
             ),
         ],
         allow_extra_metadata=True,
+        distribution=distribution,
     )
 
 
