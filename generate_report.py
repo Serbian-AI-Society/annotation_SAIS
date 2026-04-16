@@ -472,7 +472,7 @@ document.getElementById("hdr-meta").innerHTML =
 })();
 
 // ---- Annotations table ----
-let sortCol = "date", sortDir = -1, expandedId = null;
+let sortCol = "date", sortDir = -1, currentFiltered = [];
 
 // Populate filter dropdowns
 (function(){
@@ -518,27 +518,26 @@ function scoreLabel(score) {
 }
 
 function renderTable() {
-  const filtered = sortData(getFiltered());
+  currentFiltered = sortData(getFiltered());
   document.getElementById("ann-count").textContent =
-    filtered.length + " of " + DATA.annotations.length + " annotation" + (DATA.annotations.length!==1?"s":"");
+    currentFiltered.length + " of " + DATA.annotations.length + " annotation" + (DATA.annotations.length!==1?"s":"");
 
   const tbody = document.getElementById("ann-body2");
   const empty = document.getElementById("ann-empty");
 
-  if (!filtered.length) {
+  if (!currentFiltered.length) {
     tbody.innerHTML = "";
     empty.style.display = "";
     return;
   }
   empty.style.display = "none";
 
-  tbody.innerHTML = filtered.map((a, i) => {
+  tbody.innerHTML = currentFiltered.map((a, i) => {
     const isNoCorr = (a.correction||"").trim().toLowerCase() === "no corrections";
     const corrPreview = isNoCorr
       ? `<span class="no-corr">No corrections</span>`
       : `<span class="trunc">${esc(trunc(a.correction, 80))}</span>`;
-    const rowId = "row-" + i;
-    return `<tr class="ann-row" data-idx="${i}" onclick="toggleExpand(this, ${i}, ${JSON.stringify(filtered[i]).replace(/</g,'\\u003c')})">
+    return `<tr class="ann-row" data-idx="${i}" onclick="toggleExpand(this, ${i})">
       <td style="color:#94a3b8;font-size:12px">${i+1}</td>
       <td><strong>${esc(a.annotator)}</strong></td>
       <td style="font-size:12px">${esc(a.benchmark)}</td>
@@ -549,13 +548,14 @@ function renderTable() {
       <td><span class="trunc">${esc(trunc(a.comment, 80))}</span></td>
       <td style="font-size:12px;color:#64748b;white-space:nowrap">${esc(a.date)}</td>
     </tr>
-    <tr class="expand-row" id="${rowId}" style="display:none">
+    <tr class="expand-row" style="display:none">
       <td colspan="9"></td>
     </tr>`;
   }).join("");
 }
 
-function toggleExpand(row, idx, ann) {
+function toggleExpand(row, idx) {
+  const ann = currentFiltered[idx];
   const expandRow = row.nextElementSibling;
   const isOpen = expandRow.style.display !== "none";
 
