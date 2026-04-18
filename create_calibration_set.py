@@ -6,8 +6,9 @@ and uploads them to a separate calibration dataset where every annotator must
 annotate every record. This enables computing inter-annotator agreement (Cohen's
 kappa) to verify that annotators are calibrated with each other.
 
-Default: 2 records per benchmark (1 query + 1 passage) = 26 records total.
-Each annotator annotates all 26 — under an hour of work.
+Samples 1 record per benchmark = 13 records total, alternating between
+query and passage types so both are represented. Each annotator annotates
+all 13 — 15–30 minutes of work.
 
 Once all annotators have finished the calibration dataset, run:
     python compute_agreement.py
@@ -35,7 +36,9 @@ from collections import defaultdict
 
 import argilla as rg
 
-from load_nanobeir import BENCHMARK_NAMES, build_settings
+from load_nanobeir import BENCHMARKS, build_settings
+
+BENCHMARK_NAMES = [b["name"] for b in BENCHMARKS]
 
 DEFAULT_CALIBRATION_NAME = "NanoBEIR-sr-calibration"
 
@@ -43,13 +46,12 @@ DEFAULT_CALIBRATION_NAME = "NanoBEIR-sr-calibration"
 # ---------------------------------------------------------------------------
 # Sampling
 # ---------------------------------------------------------------------------
-def sample_records(dataset: rg.Dataset, n_per_benchmark: int) -> list:
+def sample_records(dataset: rg.Dataset) -> list:
     """
-    Sample n_per_benchmark records per benchmark from the main dataset.
+    Sample exactly 1 record per benchmark from the main dataset (13 records total).
 
-    Prefers pending records (not yet annotated by anyone).
-    Within each benchmark tries to pick 1 query and 1 passage first,
-    then fills remaining slots at random from whatever is available.
+    Alternates between query and passage across benchmarks so the calibration
+    set has an even mix of both types. Prefers pending records.
     """
     pool: dict = defaultdict(lambda: {"query": [], "passage": []})
 
@@ -65,28 +67,18 @@ def sample_records(dataset: rg.Dataset, n_per_benchmark: int) -> list:
                 pool[bm][rt].append(rec)
 
     sampled = []
-    for bm in BENCHMARK_NAMES:
+    for i, bm in enumerate(BENCHMARK_NAMES):
         bm_pool = pool.get(bm, {"query": [], "passage": []})
-        chosen = []
 
-        # 1 query + 1 passage first
-        if bm_pool["query"]:
-            chosen.append(random.choice(bm_pool["query"]))
-        if bm_pool["passage"] and len(chosen) < n_per_benchmark:
-            chosen.append(random.choice(bm_pool["passage"]))
+        # Alternate preferred type: even index → query, odd index → passage
+        preferred, fallback = ("query", "passage") if i % 2 == 0 else ("passage", "query")
 
-        # Fill remaining slots randomly
-        remaining = n_per_benchmark - len(chosen)
-        if remaining > 0:
-            rest = [r for r in bm_pool["query"] + bm_pool["passage"] if r not in chosen]
-            chosen.extend(random.sample(rest, min(remaining, len(rest))))
-
-        if len(chosen) < n_per_benchmark:
-            print(
-                f"  Warning: {bm} — only {len(chosen)} pending records available "
-                f"(wanted {n_per_benchmark})"
-            )
-        sampled.extend(chosen)
+        if bm_pool[preferred]:
+            sampled.append(random.choice(bm_pool[preferred]))
+        elif bm_pool[fallback]:
+            sampled.append(random.choice(bm_pool[fallback]))
+        else:
+            print(f"  Warning: {bm} — no pending records available, skipping.")
 
     return sampled
 
@@ -145,10 +137,6 @@ def main():
     parser.add_argument("--calibration-name", default=DEFAULT_CALIBRATION_NAME,
                         help="Name for the new calibration dataset")
     parser.add_argument(
-        "--n-per-benchmark", type=int, default=2,
-        help="Records to sample per benchmark (2 → 26 total across 13 benchmarks)",
-    )
-    parser.add_argument(
         "--min-submitted", type=int, default=None,
         help="Annotations required per record before it is marked complete. "
              "Defaults to the number of annotators currently in the workspace.",
@@ -197,11 +185,8 @@ def main():
         sys.exit(1)
 
     # Sample records
-    print(
-        f"\nSampling {args.n_per_benchmark} record(s) per benchmark "
-        f"from '{args.dataset_name}'..."
-    )
-    sampled = sample_records(main_dataset, args.n_per_benchmark)
+    print(f"\nSampling 1 record per benchmark from '{args.dataset_name}' (13 total)...")
+    sampled = sample_records(main_dataset)
     print(f"Sampled {len(sampled)} records.")
 
     cal_records = build_calibration_records(sampled)
@@ -225,6 +210,8 @@ def main():
     cal_dataset.records.log(cal_records)
 
     print(f"\nDone. {len(cal_records)} records uploaded to '{args.calibration_name}'.")
+    print(f"  — {sum(1 for r in cal_records if r.metadata.get('record_type') == 'query')} queries, "
+          f"{sum(1 for r in cal_records if r.metadata.get('record_type') == 'passage')} passages")
     print()
     print("Next steps:")
     print(f"  1. Ask every annotator to open '{args.calibration_name}' in Argilla")
