@@ -291,9 +291,9 @@ def build_settings(distribution=None) -> rg.Settings:
                 required=True,
             ),
             rg.TextField(
-                name="annotation_guide",
-                title="📋 Uputstvo za anotaciju",
-                use_markdown=True,
+                name="translated_text_sr",
+                title="🇷🇸 Machine Translation (Mašinski prevod na srpski)",
+                use_markdown=False,
                 required=True,
             ),
         ],
@@ -790,7 +790,7 @@ def collect_benchmark_records(bench: dict, max_pos: int) -> list:
                 id=f"{name}_query_{q_id}",
                 fields={
                     "source_text_en": en_text,
-                    "annotation_guide": GUIDELINES,
+                    "translated_text_sr": sr_text,
                 },
                 suggestions=[
                     rg.Suggestion(
@@ -821,7 +821,7 @@ def collect_benchmark_records(bench: dict, max_pos: int) -> list:
                 id=f"{name}_passage_{p_id}",
                 fields={
                     "source_text_en": en_text,
-                    "annotation_guide": GUIDELINES,
+                    "translated_text_sr": sr_text,
                 },
                 suggestions=[
                     rg.Suggestion(

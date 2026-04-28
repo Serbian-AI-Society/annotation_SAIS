@@ -33,7 +33,7 @@ from collections import defaultdict
 
 import argilla as rg
 
-from load_nanobeir import BENCHMARKS, build_settings, GUIDELINES
+from load_nanobeir import BENCHMARKS, build_settings
 
 BENCHMARK_NAMES = [b["name"] for b in BENCHMARKS]
 
@@ -82,12 +82,7 @@ def build_calibration_records(sampled: list) -> list:
     for rec in sampled:
         fields = rec._model.fields or {}
         source_en = fields.get("source_text_en") or ""
-        # translated_text_sr is no longer a display field; read from the pre-filled suggestion
-        translation_sr = ""
-        for sug in (getattr(rec._model, "suggestions", None) or []):
-            if getattr(sug, "question_name", "") == "corrected_text_sr":
-                translation_sr = str(sug.value) if sug.value else ""
-                break
+        translation_sr = fields.get("translated_text_sr") or ""
 
         if not source_en or not translation_sr:
             skipped += 1
@@ -102,7 +97,7 @@ def build_calibration_records(sampled: list) -> list:
                 id=cal_id,
                 fields={
                     "source_text_en": source_en,
-                    "annotation_guide": GUIDELINES,
+                    "translated_text_sr": translation_sr,
                 },
                 suggestions=[
                     rg.Suggestion(
