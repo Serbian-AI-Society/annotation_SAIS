@@ -92,8 +92,10 @@ def main():
                         continue
 
                 if args.require_correction:
-                    correction = (rec.get("corrected_text_sr") or "").strip().lower()
-                    if correction in no_corr_values or not correction:
+                    correction = (rec.get("corrected_text_sr") or "").strip()
+                    translation = (rec.get("translated_text_sr") or "").strip()
+                    # Treat unchanged pre-filled suggestion as "no correction"
+                    if not correction or correction.lower() in no_corr_values or correction == translation:
                         continue
 
                 filtered.append(rec)

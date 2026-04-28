@@ -130,11 +130,14 @@ def fetch_data(client: rg.Argilla, dataset: rg.Dataset) -> dict:
                         correction = (vals.get("corrected_text_sr") or {}).get("value", "") or ""
                         comment = (vals.get("comment") or {}).get("value", "") or ""
 
-                        # Flag contradictory annotation: low score but no correction provided.
-                        # A score of 1-2 means the translation has serious problems, so a
-                        # correction is expected. If none was entered the annotation is suspect.
                         correction_lower = (correction or "").strip().lower()
-                        no_correction_entered = correction_lower in (
+                        # Treat correction == machine translation as "no correction" —
+                        # annotator left the pre-filled suggestion unchanged.
+                        correction_unchanged = (
+                            correction.strip() == translation_sr.strip()
+                            and bool(translation_sr.strip())
+                        )
+                        no_correction_entered = correction_unchanged or correction_lower in (
                             "", "no corrections", "no correction",
                             "no corrections needed", "no correction needed",
                         )
@@ -422,6 +425,7 @@ const DATA = __DATA_JSON__;
 
 const SCORE_COLOR = {"1":"score-1","2":"score-2","3":"score-3","4":"score-4","5":"score-5","-":"score-d","?":"score-q"};
 const SCORE_HEX   = {"1":"#dc2626","2":"#ea580c","3":"#ca8a04","4":"#65a30d","5":"#16a34a"};
+const NO_CORR = new Set(["no corrections","no correction","no corrections needed","no correction needed"]);
 
 function esc(s) {
   return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
@@ -570,7 +574,6 @@ function renderTable() {
   }
   empty.style.display = "none";
 
-  const NO_CORR = new Set(["no corrections","no correction","no corrections needed","no correction needed"]);
   tbody.innerHTML = currentFiltered.map((a, i) => {
     const isNoCorr = NO_CORR.has((a.correction||"").trim().toLowerCase());
     const corrPreview = isNoCorr
