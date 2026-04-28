@@ -89,10 +89,11 @@ def fetch_annotations(client: rg.Argilla, dataset: rg.Dataset) -> dict:
 
     record_annotations: dict = defaultdict(dict)
 
-    query = rg.Query(filter=rg.Filter([("status", "==", "completed")]))
+    # Fetch all records — calibration records stay "pending" indefinitely
+    # (min_submitted=100) so filtering by status=="completed" would return nothing.
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        for rec in dataset.records(query=query, with_responses=True):
+        for rec in dataset.records(with_responses=True):
             rec_id = rec._model.external_id or str(rec._model.id)
             for resp in (rec._model.responses or []):
                 if resp.status.value != "submitted":

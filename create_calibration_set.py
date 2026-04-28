@@ -185,7 +185,7 @@ def main():
         sys.exit(1)
 
     # Sample records
-    print(f"\nSampling 1 record per benchmark from '{args.dataset_name}' (13 total)...")
+    print(f"\nSampling 1 query + 1 passage per benchmark from '{args.dataset_name}' (26 total)...")
     sampled = sample_records(main_dataset)
     print(f"Sampled {len(sampled)} records.")
 
