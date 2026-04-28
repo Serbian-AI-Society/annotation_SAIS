@@ -3,13 +3,17 @@ Export annotations using Argilla's native export methods.
 
 Usage:
     # Push to HuggingFace Hub (recommended)
-    python export_v2.py --to-hub Serbian-AI-Society/translation-annotations
+    python export_annotations_V2.py --to-hub Serbian-AI-Society/translation-annotations
 
     # Save to local disk
-    python export_v2.py --to-disk ./exported_annotations
+    python export_annotations_V2.py --to-disk ./exported_annotations
 
-    # Export as JSONL (custom, for compatibility)
-    python export_v2.py --to-jsonl annotations.jsonl
+    # Export as JSONL (completed annotations only, for downstream use)
+    python export_annotations_V2.py --to-jsonl annotations.jsonl
+
+    # JSONL with quality filters
+    python export_annotations_V2.py --to-jsonl annotations.jsonl --min-score 3
+    python export_annotations_V2.py --to-jsonl annotations.jsonl --require-correction
 """
 
 import argparse
@@ -68,7 +72,8 @@ def main():
     # JSONL export for custom pipelines
     if args.to_jsonl:
         print(f"Exporting to JSONL: {args.to_jsonl}")
-        records = dataset.records(with_responses=True).to_list(flatten=True)
+        query = rg.Query(filter=rg.Filter([("status", "==", "completed")]))
+        records = dataset.records(query=query, with_responses=True).to_list(flatten=True)
 
         total_before = len(records)
         if args.min_score is not None or args.require_correction:

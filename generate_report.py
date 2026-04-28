@@ -33,15 +33,12 @@ from pathlib import Path
 
 import argilla as rg
 
+from load_nanobeir import BENCHMARKS
+
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
     sys.stdout = open(sys.stdout.fileno(), mode="w", encoding="utf-8", buffering=1)
 
-BENCHMARK_NAMES = [
-    "NanoArguAna", "NanoTouche2020", "NanoSciFact", "NanoSCIDOCS",
-    "NanoNQ", "NanoNFCorpus", "NanoMSMARCO", "NanoFiQA2018",
-    "NanoHotpotQA", "NanoFEVER", "NanoDBPedia", "NanoQuoraRetrieval",
-    "NanoClimateFEVER",
-]
+BENCHMARK_NAMES = [b["name"] for b in BENCHMARKS]
 
 
 # ---------------------------------------------------------------------------
@@ -573,8 +570,9 @@ function renderTable() {
   }
   empty.style.display = "none";
 
+  const NO_CORR = new Set(["no corrections","no correction","no corrections needed","no correction needed"]);
   tbody.innerHTML = currentFiltered.map((a, i) => {
-    const isNoCorr = (a.correction||"").trim().toLowerCase() === "no corrections";
+    const isNoCorr = NO_CORR.has((a.correction||"").trim().toLowerCase());
     const corrPreview = isNoCorr
       ? `<span class="no-corr">No corrections</span>`
       : `<span class="trunc">${esc(trunc(a.correction, 80))}</span>`;
@@ -609,7 +607,7 @@ function toggleExpand(row, idx) {
   row.classList.add("expanded");
   expandRow.style.display = "";
 
-  const isNoCorr = (ann.correction||"").trim().toLowerCase() === "no corrections";
+  const isNoCorr = NO_CORR.has((ann.correction||"").trim().toLowerCase());
   const corrClass = isNoCorr ? "text-box no-correction" : "text-box correction-made";
   expandRow.querySelector("td").innerHTML = `
     ${ann.flagged ? `<div style="padding:10px 24px 0"><div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:8px;padding:10px 14px;font-size:13px;color:#991b1b"><strong>&#9888; Quality flag:</strong> Score &le;2 but no correction was entered &mdash; this annotation may need review.</div></div>` : ''}

@@ -6,18 +6,15 @@ and uploads them to a separate calibration dataset where every annotator must
 annotate every record. This enables computing inter-annotator agreement (Cohen's
 kappa) to verify that annotators are calibrated with each other.
 
-Samples 1 record per benchmark = 13 records total, alternating between
-query and passage types so both are represented. Each annotator annotates
-all 13 — 15–30 minutes of work.
+Samples 1 query + 1 passage per benchmark = 26 records total, so both
+text types are represented for every benchmark. Each annotator annotates
+all 26 — 30–45 minutes of work.
 
 Once all annotators have finished the calibration dataset, run:
     python compute_agreement.py
 
 Usage:
     python create_calibration_set.py
-
-    # More records per benchmark
-    python create_calibration_set.py --n-per-benchmark 3
 
     # Require a specific number of annotators per record (default: auto-detect)
     python create_calibration_set.py --min-submitted 3
@@ -36,7 +33,7 @@ from collections import defaultdict
 
 import argilla as rg
 
-from load_nanobeir import BENCHMARKS, build_settings
+from load_nanobeir import BENCHMARKS, build_settings, GUIDELINES
 
 BENCHMARK_NAMES = [b["name"] for b in BENCHMARKS]
 
@@ -48,10 +45,10 @@ DEFAULT_CALIBRATION_NAME = "NanoBEIR-sr-calibration"
 # ---------------------------------------------------------------------------
 def sample_records(dataset: rg.Dataset) -> list:
     """
-    Sample exactly 1 record per benchmark from the main dataset (13 records total).
+    Sample 1 query + 1 passage per benchmark from the main dataset (26 records total).
 
-    Alternates between query and passage across benchmarks so the calibration
-    set has an even mix of both types. Prefers pending records.
+    Both types are represented for every benchmark so calibration covers
+    both annotation scenarios. Prefers pending records.
     """
     pool: dict = defaultdict(lambda: {"query": [], "passage": []})
 
@@ -59,7 +56,7 @@ def sample_records(dataset: rg.Dataset) -> list:
     query = rg.Query(filter=rg.Filter([("status", "==", "pending")]))
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        for rec in dataset.records(query=query, with_responses=False):
+        for rec in dataset.records(query=query, with_responses=False, with_suggestions=True):
             meta = rec.metadata or {}
             bm = meta.get("benchmark", "Unknown")
             rt = meta.get("record_type", "unknown")
@@ -67,18 +64,13 @@ def sample_records(dataset: rg.Dataset) -> list:
                 pool[bm][rt].append(rec)
 
     sampled = []
-    for i, bm in enumerate(BENCHMARK_NAMES):
+    for bm in BENCHMARK_NAMES:
         bm_pool = pool.get(bm, {"query": [], "passage": []})
-
-        # Alternate preferred type: even index → query, odd index → passage
-        preferred, fallback = ("query", "passage") if i % 2 == 0 else ("passage", "query")
-
-        if bm_pool[preferred]:
-            sampled.append(random.choice(bm_pool[preferred]))
-        elif bm_pool[fallback]:
-            sampled.append(random.choice(bm_pool[fallback]))
-        else:
-            print(f"  Warning: {bm} — no pending records available, skipping.")
+        for rt in ("query", "passage"):
+            if bm_pool[rt]:
+                sampled.append(random.choice(bm_pool[rt]))
+            else:
+                print(f"  Warning: {bm} — no pending {rt} records available, skipping.")
 
     return sampled
 
@@ -90,7 +82,12 @@ def build_calibration_records(sampled: list) -> list:
     for rec in sampled:
         fields = rec._model.fields or {}
         source_en = fields.get("source_text_en") or ""
-        translation_sr = fields.get("translated_text_sr") or ""
+        # translated_text_sr is no longer a display field; read from the pre-filled suggestion
+        translation_sr = ""
+        for sug in (getattr(rec._model, "suggestions", None) or []):
+            if getattr(sug, "question_name", "") == "corrected_text_sr":
+                translation_sr = str(sug.value) if sug.value else ""
+                break
 
         if not source_en or not translation_sr:
             skipped += 1
@@ -105,8 +102,16 @@ def build_calibration_records(sampled: list) -> list:
                 id=cal_id,
                 fields={
                     "source_text_en": source_en,
-                    "translated_text_sr": translation_sr,
+                    "annotation_guide": GUIDELINES,
                 },
+                suggestions=[
+                    rg.Suggestion(
+                        question_name="corrected_text_sr",
+                        value=translation_sr,
+                        agent="DeepSeek-V3",
+                        type="model",
+                    )
+                ],
                 metadata={
                     "task_id": meta.get("task_id", ""),
                     "record_type": meta.get("record_type", "unknown"),

@@ -24,21 +24,9 @@ from collections import defaultdict
 
 import argilla as rg
 
-BENCHMARK_NAMES = [
-    "NanoArguAna",
-    "NanoTouche2020",
-    "NanoSciFact",
-    "NanoSCIDOCS",
-    "NanoNQ",
-    "NanoNFCorpus",
-    "NanoMSMARCO",
-    "NanoFiQA2018",
-    "NanoHotpotQA",
-    "NanoFEVER",
-    "NanoDBPedia",
-    "NanoQuoraRetrieval",
-    "NanoClimateFEVER",
-]
+from load_nanobeir import BENCHMARKS
+
+BENCHMARK_NAMES = [b["name"] for b in BENCHMARKS]
 
 
 def fetch_data(dataset: rg.Dataset, client: rg.Argilla):
@@ -95,29 +83,29 @@ def print_benchmark_table(status_counts: dict) -> int:
     print(f"{'':25}  {'done/total':>{col_w}}  {'done/total':>{col_w}}  {'done/total':>{col_w}}")
     print("-" * (25 + 3 * (col_w + 2) + 2))
 
+    def _stats(bdata, rec_type):
+        d = bdata.get(rec_type, {})
+        done = d.get("completed", 0) + d.get("discarded", 0)
+        total = done + d.get("pending", 0)
+        return done, total
+
+    def _fmt(done, total):
+        if total == 0:
+            return "-"
+        pct = done * 100 // total
+        return f"{done}/{total} ({pct}%)"
+
     grand_done = grand_total = 0
 
     for name in BENCHMARK_NAMES:
         bdata = status_counts.get(name, {})
 
-        def _stats(rec_type):
-            d = bdata.get(rec_type, {})
-            done = d.get("completed", 0) + d.get("discarded", 0)
-            total = done + d.get("pending", 0)
-            return done, total
-
-        q_done, q_total = _stats("query")
-        p_done, p_total = _stats("passage")
+        q_done, q_total = _stats(bdata, "query")
+        p_done, p_total = _stats(bdata, "passage")
         t_done = q_done + p_done
         t_total = q_total + p_total
         grand_done += t_done
         grand_total += t_total
-
-        def _fmt(done, total):
-            if total == 0:
-                return "-"
-            pct = done * 100 // total
-            return f"{done}/{total} ({pct}%)"
 
         print(
             f"{name:<25}  {_fmt(q_done, q_total):>{col_w}}  "

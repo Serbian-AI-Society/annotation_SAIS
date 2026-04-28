@@ -124,7 +124,7 @@ Ponovo pročitajte samo tekst na srpskom, i proverite:
 
 ### Korak 3: Unos ispravki, ocene i komentara
 
-**Ispravke:** Unesite ispravljeni prevod u polje za ispravke. Ako prevodu nisu potrebne ispravke, unesite tačno: No corrections.
+**Ispravke:** Srpski prevod je unapred učitan u polje za ispravke. Ispravite ga direktno. Ako prevodu nisu potrebne ispravke, obrišite tekst i unesite tačno: No corrections.
 
 **Komentar:** Napišite kratak komentar u kojem objašnjavate unete ispravke. Ako nema ispravki: No corrections needed.
 
@@ -286,14 +286,14 @@ def build_settings(distribution=None) -> rg.Settings:
         fields=[
             rg.TextField(
                 name="source_text_en",
-                title="English Source Text (Originalni tekst na engleskom)",
+                title="🇬🇧 English Source Text (Originalni tekst na engleskom)",
                 use_markdown=False,
                 required=True,
             ),
             rg.TextField(
-                name="translated_text_sr",
-                title="Machine Translation (Mašinski prevod na srpski)",
-                use_markdown=False,
+                name="annotation_guide",
+                title="📋 Uputstvo za anotaciju",
+                use_markdown=True,
                 required=True,
             ),
         ],
@@ -314,21 +314,21 @@ def build_settings(distribution=None) -> rg.Settings:
                 required=True,
             ),
             rg.TextQuestion(
-                name="corrected_text_sr",
-                title="Ispravite prevod sa engleskog na srpski",
-                description=(
-                    "Unesite ispravljeni prevod. "
-                    "Ako prevod ne zahteva ispravke, unesite: No corrections."
-                ),
-                required=True,
-                use_markdown=False,
-            ),
-            rg.TextQuestion(
                 name="comment",
                 title="Komentar",
                 description=(
                     "Kratko objašnjenje ispravki. "
                     "Ako nema ispravki, unesite: No corrections needed."
+                ),
+                required=False,
+                use_markdown=False,
+            ),
+            rg.TextQuestion(
+                name="corrected_text_sr",
+                title="🇷🇸 Ispravite mašinski prevod na srpski",
+                description=(
+                    "Prevod je unapred učitan. Ispravite ga direktno. "
+                    "Ako prevod ne zahteva ispravke, obrišite tekst i unesite: No corrections."
                 ),
                 required=True,
                 use_markdown=False,
@@ -790,8 +790,16 @@ def collect_benchmark_records(bench: dict, max_pos: int) -> list:
                 id=f"{name}_query_{q_id}",
                 fields={
                     "source_text_en": en_text,
-                    "translated_text_sr": sr_text,
+                    "annotation_guide": GUIDELINES,
                 },
+                suggestions=[
+                    rg.Suggestion(
+                        question_name="corrected_text_sr",
+                        value=sr_text,
+                        agent="DeepSeek-V3",
+                        type="model",
+                    )
+                ],
                 metadata={
                     "task_id": f"query_{q_id}",
                     "record_type": "query",
@@ -813,8 +821,16 @@ def collect_benchmark_records(bench: dict, max_pos: int) -> list:
                 id=f"{name}_passage_{p_id}",
                 fields={
                     "source_text_en": en_text,
-                    "translated_text_sr": sr_text,
+                    "annotation_guide": GUIDELINES,
                 },
+                suggestions=[
+                    rg.Suggestion(
+                        question_name="corrected_text_sr",
+                        value=sr_text,
+                        agent="DeepSeek-V3",
+                        type="model",
+                    )
+                ],
                 metadata={
                     "task_id": f"passage_{p_id}",
                     "record_type": "passage",
@@ -879,6 +895,14 @@ def main():
         "--dry-run",
         action="store_true",
         help="Print record counts per benchmark without uploading anything.",
+    )
+    parser.add_argument(
+        "--recreate",
+        action="store_true",
+        help=(
+            "Delete the existing dataset before creating a fresh one. "
+            "All existing records and annotations will be permanently lost."
+        ),
     )
     args = parser.parse_args()
 
@@ -946,6 +970,18 @@ def main():
         import random
         random.shuffle(all_records)
         log.info(f"Shuffled {len(all_records)} records.")
+
+    # Delete existing dataset if --recreate was requested
+    if args.recreate:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            existing = client.datasets(name=args.dataset_name, workspace=args.workspace)
+        if existing is not None:
+            log.info(f"--recreate: deleting existing dataset '{args.dataset_name}'...")
+            existing.delete()
+            log.info("  Deleted.")
+        else:
+            log.info(f"--recreate: dataset '{args.dataset_name}' does not exist, nothing to delete.")
 
     # Upload all records to the single merged dataset
     dataset = get_or_create_dataset(client, args.dataset_name, args.workspace)
