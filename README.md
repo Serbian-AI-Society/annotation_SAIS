@@ -97,7 +97,22 @@ python fix_calibration_discards.py --fix
 
 Run this whenever an annotator says their calibration queue has fewer than 26 records.
 
-### `compute_agreement.py` — Inter-annotator agreement (Cohen's kappa)
+### `reopen_annotation.py` — Re-open a badly annotated main-dataset record
+
+If a submitted annotation is wrong, deleting it returns the record to pending so it can be re-annotated.
+
+```bash
+# Preview all responses for a record
+python reopen_annotation.py --record-id NanoArguAna_query_42
+
+# Delete one annotator's response
+python reopen_annotation.py --record-id NanoArguAna_query_42 --annotator marko_petrovic --fix
+
+# Delete all responses (re-opens for everyone)
+python reopen_annotation.py --record-id NanoArguAna_query_42 --all --fix
+```
+
+### `compute_agreement.py` — Inter-annotator agreement (quadratic weighted Cohen's kappa)
 
 Run after all annotators have finished the calibration dataset. Computes pairwise Cohen's weighted kappa for every annotator pair.
 

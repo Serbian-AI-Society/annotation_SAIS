@@ -105,9 +105,14 @@ def main():
             )
             records = filtered
 
+        # Strip UI-only fields that have no value in downstream training data
+        drop_keys = {"annotation_guide_link"}
         with open(args.to_jsonl, "w", encoding="utf-8") as f:
             for rec in records:
-                f.write(json.dumps(rec, ensure_ascii=False, default=str) + "\n")
+                f.write(json.dumps(
+                    {k: v for k, v in rec.items() if k not in drop_keys},
+                    ensure_ascii=False, default=str,
+                ) + "\n")
         print(f"Exported {len(records)} records.")
 
 

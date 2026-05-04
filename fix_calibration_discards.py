@@ -92,7 +92,12 @@ def main():
         )
         return
 
-    print(f"\nDeleting {len(discards)} discarded response(s)...")
+    answer = input(f"\nDelete {len(discards)} discarded response(s) and restore them to annotator queues? [y/N] ")
+    if answer.strip().lower() != "y":
+        print("Aborted.")
+        return
+
+    print(f"Deleting {len(discards)} discarded response(s)...")
     fixed = 0
     failed = 0
     for rec_id, resp_id, username in discards:

@@ -3,7 +3,7 @@ Compute inter-annotator agreement (IAA) from the calibration dataset.
 
 Reads the NanoBEIR-sr-calibration dataset and for every pair of annotators
 that both annotated the same record computes:
-  - Cohen's kappa  (standard IAA metric; 0 = chance, 1 = perfect)
+  - Quadratic weighted Cohen's kappa  (standard for ordinal scales; 0 = chance, 1 = perfect)
   - Percentage exact agreement
   - Mean absolute difference in scores
 
@@ -37,31 +37,50 @@ import argilla as rg
 DEFAULT_CALIBRATION_NAME = "NanoBEIR-sr-calibration"
 
 
-def cohen_kappa(labels_a: list, labels_b: list) -> float:
-    """Compute Cohen's kappa for two annotators on the same set of records."""
-    assert len(labels_a) == len(labels_b), "Label lists must be the same length"
+def cohen_kappa_weighted(labels_a: list, labels_b: list) -> float:
+    """
+    Quadratic weighted Cohen's kappa for two annotators on the same set of records.
+
+    Quadratic weighting is standard for ordinal scales: a disagreement of 2 points
+    is penalised 4× more than a disagreement of 1 point. Unweighted kappa treats
+    all disagreements equally, which is wrong for a 1–5 quality score.
+    """
+    if len(labels_a) != len(labels_b):
+        raise ValueError("Label lists must be the same length")
     n = len(labels_a)
     if n == 0:
         return float("nan")
 
-    categories = sorted(set(labels_a) | set(labels_b))
-    cat_idx = {c: i for i, c in enumerate(categories)}
+    # Use the fixed 1–5 ordinal scale so the weight matrix is stable regardless
+    # of which scores happen to appear in this particular pair's data.
+    categories = list(range(1, 6))
     k = len(categories)
+    cat_idx = {c: i for i, c in enumerate(categories)}
 
-    # Confusion matrix
-    conf = [[0] * k for _ in range(k)]
+    # Quadratic weight matrix: w[i][j] = 1 - ((i-j)/(k-1))^2
+    weights = [
+        [1.0 - ((i - j) ** 2) / ((k - 1) ** 2) for j in range(k)]
+        for i in range(k)
+    ]
+
+    # Observed frequency matrix
+    obs = [[0] * k for _ in range(k)]
     for a, b in zip(labels_a, labels_b):
-        conf[cat_idx[a]][cat_idx[b]] += 1
+        if a in cat_idx and b in cat_idx:
+            obs[cat_idx[a]][cat_idx[b]] += 1
 
-    p_observed = sum(conf[i][i] for i in range(k)) / n
+    row_sums = [sum(obs[i]) for i in range(k)]
+    col_sums = [sum(obs[r][i] for r in range(k)) for i in range(k)]
 
-    row_sums = [sum(conf[i]) for i in range(k)]
-    col_sums = [sum(conf[r][i] for r in range(k)) for i in range(k)]
-    p_expected = sum(row_sums[i] * col_sums[i] for i in range(k)) / (n * n)
+    # Expected frequency matrix under marginal independence
+    exp = [[row_sums[i] * col_sums[j] / n for j in range(k)] for i in range(k)]
 
-    if p_expected == 1.0:
+    numerator = sum(weights[i][j] * obs[i][j] for i in range(k) for j in range(k))
+    denominator = sum(weights[i][j] * exp[i][j] for i in range(k) for j in range(k))
+
+    if denominator == 0:
         return 1.0
-    return (p_observed - p_expected) / (1.0 - p_expected)
+    return 1.0 - (n - numerator) / (n - denominator)
 
 
 def interpret_kappa(kappa: float) -> str:
@@ -169,12 +188,12 @@ def main():
         scores_a = [annotations[rid][ann_a] for rid in shared_ids]
         scores_b = [annotations[rid][ann_b] for rid in shared_ids]
 
-        kappa = cohen_kappa(scores_a, scores_b)
+        kappa = cohen_kappa_weighted(scores_a, scores_b)
         exact = sum(a == b for a, b in zip(scores_a, scores_b)) / len(shared_ids)
         mean_diff = sum(abs(a - b) for a, b in zip(scores_a, scores_b)) / len(shared_ids)
 
         print(f"\n  {ann_a}  vs  {ann_b}  ({len(shared_ids)} shared records)")
-        print(f"    Cohen's kappa:      {kappa:.3f}  ({interpret_kappa(kappa)})")
+        print(f"    Weighted kappa:     {kappa:.3f}  ({interpret_kappa(kappa)})")
         print(f"    Exact agreement:    {exact*100:.1f}%")
         print(f"    Mean score diff:    {mean_diff:.2f} points")
 
