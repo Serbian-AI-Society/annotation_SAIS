@@ -33,7 +33,7 @@ from collections import defaultdict
 
 import argilla as rg
 
-from load_nanobeir import BENCHMARKS, build_settings
+from load_nanobeir import BENCHMARKS, GUIDE_LINK_FIELD, build_settings
 
 BENCHMARK_NAMES = [b["name"] for b in BENCHMARKS]
 
@@ -96,6 +96,7 @@ def build_calibration_records(sampled: list) -> list:
             rg.Record(
                 id=cal_id,
                 fields={
+                    "annotation_guide_link": GUIDE_LINK_FIELD,
                     "source_text_en": source_en,
                     "translated_text_sr": translation_sr,
                 },

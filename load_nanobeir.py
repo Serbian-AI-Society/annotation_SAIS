@@ -88,6 +88,9 @@ log = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Annotation guidelines
 # ---------------------------------------------------------------------------
+GUIDE_URL = "https://docs.google.com/document/d/1XDhdm9bF8habXG9xE-_WlXXy6-BLee1m2gLqQGrU8Mg/edit?tab=t.0#heading=h.vhgcdvffaq5m"
+GUIDE_LINK_FIELD = f"[Ovde se možete vratiti na upustva za anotaciju]({GUIDE_URL})"
+
 GUIDELINES = """
 # Uputstvo za ispravljanje automatskog prevoda (NanoBEIR)
 
@@ -284,6 +287,12 @@ def build_settings(distribution=None) -> rg.Settings:
     return rg.Settings(
         guidelines=GUIDELINES,
         fields=[
+            rg.TextField(
+                name="annotation_guide_link",
+                title="📋 Uputstvo",
+                use_markdown=True,
+                required=False,
+            ),
             rg.TextField(
                 name="source_text_en",
                 title="🇬🇧 English Source Text (Originalni tekst na engleskom)",
@@ -789,6 +798,7 @@ def collect_benchmark_records(bench: dict, max_pos: int) -> list:
             rg.Record(
                 id=f"{name}_query_{q_id}",
                 fields={
+                    "annotation_guide_link": GUIDE_LINK_FIELD,
                     "source_text_en": en_text,
                     "translated_text_sr": sr_text,
                 },
@@ -820,6 +830,7 @@ def collect_benchmark_records(bench: dict, max_pos: int) -> list:
             rg.Record(
                 id=f"{name}_passage_{p_id}",
                 fields={
+                    "annotation_guide_link": GUIDE_LINK_FIELD,
                     "source_text_en": en_text,
                     "translated_text_sr": sr_text,
                 },
