@@ -97,7 +97,7 @@ def interpret_kappa(kappa: float) -> str:
 
 def fetch_annotations(client: rg.Argilla, dataset: rg.Dataset) -> dict:
     """
-    Returns: {record_id: {username: score_int_or_None}}
+    Returns: {record_id: {username: {"score": int|None, "error_cats": set}}}
     Only includes records with at least 2 submitted responses.
     """
     user_map = {}
@@ -119,10 +119,18 @@ def fetch_annotations(client: rg.Argilla, dataset: rg.Dataset) -> dict:
                     continue
                 uid = str(resp.user_id)
                 username = user_map.get(uid, uid[:8])
+
                 score_raw = (resp.values.get("quality_score") or {}).get("value", "")
                 score_str = str(score_raw).strip()
                 score = int(score_str[0]) if score_str and score_str[0].isdigit() else None
-                record_annotations[rec_id][username] = score
+
+                cats_raw = (resp.values.get("error_categories") or {}).get("value", []) or []
+                error_cats = set(cats_raw) if isinstance(cats_raw, list) else {cats_raw}
+
+                record_annotations[rec_id][username] = {
+                    "score": score,
+                    "error_cats": error_cats,
+                }
 
     # Keep only records annotated by at least 2 annotators
     return {
@@ -178,15 +186,15 @@ def main():
         shared_ids = [
             rec_id for rec_id, ann in annotations.items()
             if ann_a in ann and ann_b in ann
-            and ann[ann_a] is not None and ann[ann_b] is not None
+            and ann[ann_a]["score"] is not None and ann[ann_b]["score"] is not None
         ]
 
         if not shared_ids:
             print(f"\n{ann_a} vs {ann_b}: no shared records")
             continue
 
-        scores_a = [annotations[rid][ann_a] for rid in shared_ids]
-        scores_b = [annotations[rid][ann_b] for rid in shared_ids]
+        scores_a = [annotations[rid][ann_a]["score"] for rid in shared_ids]
+        scores_b = [annotations[rid][ann_b]["score"] for rid in shared_ids]
 
         kappa = cohen_kappa_weighted(scores_a, scores_b)
         exact = sum(a == b for a, b in zip(scores_a, scores_b)) / len(shared_ids)
@@ -206,9 +214,9 @@ def main():
 
     annotator_scores: dict = defaultdict(list)
     for ann in annotations.values():
-        for username, score in ann.items():
-            if score is not None:
-                annotator_scores[username].append(score)
+        for username, data in ann.items():
+            if data["score"] is not None:
+                annotator_scores[username].append(data["score"])
 
     for username in all_annotators:
         scores = annotator_scores.get(username, [])
@@ -221,6 +229,38 @@ def main():
             + "  ".join(f"{counts[i]:>4}" for i in range(1, 6))
             + f"  {avg:>6.2f}"
         )
+
+    # Error category agreement
+    all_cats = sorted({
+        cat
+        for ann in annotations.values()
+        for data in ann.values()
+        for cat in data["error_cats"]
+    })
+
+    if all_cats:
+        print("\n" + "=" * 60)
+        print("Error category pairwise agreement (% records where both annotators agree)")
+        print("(agree = both selected it, or both did not select it)")
+        print("=" * 60)
+
+        for ann_a, ann_b in combinations(all_annotators, 2):
+            shared_ids = [
+                rec_id for rec_id, ann in annotations.items()
+                if ann_a in ann and ann_b in ann
+            ]
+            if not shared_ids:
+                continue
+
+            print(f"\n  {ann_a}  vs  {ann_b}  ({len(shared_ids)} shared records)")
+            for cat in all_cats:
+                agreed = sum(
+                    (cat in annotations[rid][ann_a]["error_cats"]) ==
+                    (cat in annotations[rid][ann_b]["error_cats"])
+                    for rid in shared_ids
+                )
+                pct = agreed * 100 / len(shared_ids)
+                print(f"    {cat:<30}  {pct:.0f}% agreement")
 
     print()
 

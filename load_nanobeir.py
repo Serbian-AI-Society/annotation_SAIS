@@ -89,7 +89,7 @@ log = logging.getLogger(__name__)
 # Annotation guidelines
 # ---------------------------------------------------------------------------
 GUIDE_URL = "https://docs.google.com/document/d/1XDhdm9bF8habXG9xE-_WlXXy6-BLee1m2gLqQGrU8Mg/edit?tab=t.0#heading=h.vhgcdvffaq5m"
-GUIDE_LINK_FIELD = f"[Ovde se možete vratiti na upustva za anotaciju]({GUIDE_URL})"
+GUIDE_LINK_FIELD = f"[Ovde se možete vratiti na uputstva za anotaciju]({GUIDE_URL})"
 
 GUIDELINES = """
 # Uputstvo za ispravljanje automatskog prevoda (NanoBEIR)
@@ -127,13 +127,18 @@ Ponovo pročitajte samo tekst na srpskom, i proverite:
 
 ### Korak 3: Unos ocene, vrsta grešaka, ispravki i komentara
 
-**Ocena kvaliteta (1–5):** Izaberite jednu ocenu.
+**Ocena kvaliteta (1–5):**
 
-**Vrste grešaka:** Označite sve vrste grešaka koje ste pronašli. Ako prevod nema grešaka, označite samo „Nema grešaka".
+- 1 – Potpuno netačan: Prevod ne prenosi značenje originalnog teksta.
+- 2 – Veće greške: Prevod menja značenje ili ključna terminologija je pogrešno prevedena.
+- 3 – Adekvatan: Tačno prenosi značenje, ali sadrži greške koje mogu uticati na razumevanje.
+- 4 – Dobar: Potpuno i tačno prenosi značenje. Sadrži manje stilske greške koje ne utiču na razumevanje.
+- 5 – Odličan: U potpunosti prenosi značenje. Prirodan srpski jezik, bez gramatičkih ili stilskih grešaka.
+
+**Vrste grešaka:** Označite sve vrste grešaka koje ste pronašli. Ako prevod nema grešaka, označite samo „Nema grešaka" na dnu liste.
 
 | Kategorija | Opis |
 |---|---|
-| Nema grešaka | Prevod je ispravan i prirodan — nema potrebe za ispravkama |
 | Pogrešno značenje | Prevod prenosi drugačije značenje od originalnog teksta |
 | Nedostaje informacija | Deo sadržaja iz originalnog teksta nije preveden |
 | Dodat sadržaj | U prevodu postoji sadržaj koji ne postoji u originalu |
@@ -143,18 +148,11 @@ Ponovo pročitajte samo tekst na srpskom, i proverite:
 | Pravopis | Pravopisne greške |
 | Terminologija | Pogrešno prevedeni stručni termini |
 | Neprirodan stil | Sintaktički ispravno, ali zvuči kao mašinski prevod — neprirodni srpski |
+| Nema grešaka | Prevod je ispravan i prirodan — nema potrebe za ispravkama |
 
 **Ispravke:** Srpski prevod je unapred učitan u polje za ispravke. Ispravite ga direktno. Ako prevodu nisu potrebne ispravke, obrišite tekst i unesite tačno: No corrections.
 
 **Komentar (opciono):** Napišite komentar samo ako vrste grešaka ne opisuju problem dovoljno.
-
-**Ocena kvaliteta (1–5):**
-
-1 – Potpuno netačan prevod: Prevod ne prenosi značenje originalnog teksta.
-2 – Prevod sadrži veće greške: Prevod menja značenje ili ključna terminologija je pogrešno prevedena.
-3 – Adekvatan prevod sa manjim greškama: Tačno prenosi značenje, ali sadrži greške koje mogu uticati na razumevanje.
-4 – Dobar kvalitet: Potpuno i tačno prenosi značenje. Sadrži manje stilske greške koje ne utiču na razumevanje.
-5 – Odličan kvalitet: U potpunosti prenosi značenje. Prirodan srpski jezik, bez gramatičkih ili stilskih grešaka.
 """
 
 # ---------------------------------------------------------------------------
@@ -347,7 +345,6 @@ def build_settings(distribution=None) -> rg.Settings:
                     "Inače označite sve vrste grešaka koje ste pronašli."
                 ),
                 labels=[
-                    "Nema grešaka",
                     "Pogrešno značenje",
                     "Nedostaje informacija",
                     "Dodat sadržaj",
@@ -357,6 +354,7 @@ def build_settings(distribution=None) -> rg.Settings:
                     "Pravopis",
                     "Terminologija",
                     "Neprirodan stil",
+                    "Nema grešaka",
                 ],
                 required=True,
             ),

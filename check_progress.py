@@ -34,6 +34,7 @@ def fetch_data(dataset: rg.Dataset, client: rg.Argilla):
     Single pass over all records. Returns:
       status_counts[benchmark][record_type][status] = int
       annotator_counts[username][score_label] = int   (score_label: "1"-"5" or "discarded")
+      error_cat_counts[category] = int
     """
     # Build user_id → username map
     user_map = {}
@@ -44,6 +45,7 @@ def fetch_data(dataset: rg.Dataset, client: rg.Argilla):
 
     status_counts = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
     annotator_counts = defaultdict(lambda: defaultdict(int))
+    error_cat_counts: dict = defaultdict(int)
 
     for status_val in ("pending", "completed", "discarded"):
         query = rg.Query(filter=rg.Filter([("status", "==", status_val)]))
@@ -59,21 +61,23 @@ def fetch_data(dataset: rg.Dataset, client: rg.Argilla):
                 if fetch_responses and rec._model.responses:
                     for resp in rec._model.responses:
                         uid = str(resp.user_id)
-                        username = user_map.get(uid, uid[:8])  # fallback to short UUID
+                        username = user_map.get(uid, uid[:8])
 
                         if resp.status.value == "discarded":
                             annotator_counts[username]["discarded"] += 1
                         elif resp.status.value == "submitted":
                             qs = resp.values.get("quality_score")
                             if qs:
-                                # Label is like "3 – Adekvatan"; extract leading digit
                                 score = str(qs["value"]).strip()[0]
                                 if score.isdigit():
                                     annotator_counts[username][score] += 1
                                 else:
                                     annotator_counts[username]["?"] += 1
+                            cats_raw = (resp.values.get("error_categories") or {}).get("value", []) or []
+                            for cat in (cats_raw if isinstance(cats_raw, list) else [cats_raw]):
+                                error_cat_counts[cat] += 1
 
-    return status_counts, annotator_counts
+    return status_counts, annotator_counts, error_cat_counts
 
 
 def print_benchmark_table(status_counts: dict) -> int:
@@ -174,7 +178,7 @@ def main():
         sys.exit(1)
 
     print(f"Fetching progress for '{args.dataset_name}' ...", flush=True)
-    status_counts, annotator_counts = fetch_data(dataset, client)
+    status_counts, annotator_counts, error_cat_counts = fetch_data(dataset, client)
 
     print("\n=== Benchmark progress ===")
     print_benchmark_table(status_counts)
@@ -182,6 +186,19 @@ def main():
     print("\n=== Per-annotator summary ===")
     print("  Columns 1–5 = quality score chosen | skip = record discarded without annotation")
     print_annotator_table(annotator_counts)
+
+    if error_cat_counts:
+        total_submitted = sum(
+            sum(v for k, v in counts.items() if k.isdigit())
+            for counts in annotator_counts.values()
+        )
+        print("\n=== Error category frequencies ===")
+        print(f"  (across {total_submitted} submitted annotations)\n")
+        for cat, count in sorted(error_cat_counts.items(), key=lambda x: -x[1]):
+            pct = count * 100 // total_submitted if total_submitted else 0
+            bar = "█" * (pct // 5)
+            print(f"  {cat:<30}  {count:>5}  ({pct:>3}%)  {bar}")
+        print()
 
 
 if __name__ == "__main__":
