@@ -11,6 +11,9 @@ env.ps1
 # Generated reports (run generate_report.py to recreate)
 annotation_report.html
 
+# Claude Code context (local only)
+CLAUDE.md
+
 # OS
 .DS_Store
 Thumbs.db
