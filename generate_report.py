@@ -129,10 +129,10 @@ def fetch_data(client: rg.Argilla, dataset: rg.Dataset) -> dict:
                             score_num = "?"
                         correction = (vals.get("corrected_text_sr") or {}).get("value", "") or ""
                         comment = (vals.get("comment") or {}).get("value", "") or ""
+                        error_cats_raw = (vals.get("error_categories") or {}).get("value", []) or []
+                        error_cats = error_cats_raw if isinstance(error_cats_raw, list) else [error_cats_raw]
 
                         correction_lower = (correction or "").strip().lower()
-                        # Treat correction == machine translation as "no correction" —
-                        # annotator left the pre-filled suggestion unchanged.
                         correction_unchanged = (
                             correction.strip() == translation_sr.strip()
                             and bool(translation_sr.strip())
@@ -141,10 +141,13 @@ def fetch_data(client: rg.Argilla, dataset: rg.Dataset) -> dict:
                             "", "no corrections", "no correction",
                             "no corrections needed", "no correction needed",
                         )
+                        no_error_selected = "Nema grešaka" in error_cats
+
+                        # Flag contradictory: low score (≤2) but no correction entered or "Nema grešaka" selected
                         flagged = (
                             score_num.isdigit()
                             and int(score_num) <= 2
-                            and no_correction_entered
+                            and (no_correction_entered or no_error_selected)
                         )
 
                         annotator_stats[username]["scores"][score_num] += 1
@@ -152,6 +155,11 @@ def fetch_data(client: rg.Argilla, dataset: rg.Dataset) -> dict:
                         if flagged:
                             annotator_stats[username]["flagged"] = (
                                 annotator_stats[username].get("flagged", 0) + 1
+                            )
+                        for cat in error_cats:
+                            annotator_stats[username].setdefault("error_cats", {})
+                            annotator_stats[username]["error_cats"][cat] = (
+                                annotator_stats[username]["error_cats"].get(cat, 0) + 1
                             )
 
                         annotations.append({
@@ -166,6 +174,7 @@ def fetch_data(client: rg.Argilla, dataset: rg.Dataset) -> dict:
                             "translation_sr": translation_sr,
                             "correction": correction,
                             "comment": comment,
+                            "error_cats": error_cats,
                             "date": date_str,
                             "flagged": flagged,
                         })
@@ -180,6 +189,7 @@ def fetch_data(client: rg.Argilla, dataset: rg.Dataset) -> dict:
             "scores": dict(v["scores"]),
             "discarded": v["discarded"],
             "flagged": v.get("flagged", 0),
+            "error_cats": v.get("error_cats", {}),
         }
         for u, v in sorted(annotator_stats.items(), key=lambda x: -x[1]["total"])
     }
@@ -325,6 +335,9 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
            white-space: nowrap; display: block; }
   .no-corr { color: #94a3b8; font-style: italic; }
   .click-hint { font-size: 11px; color: #94a3b8; margin-top: 4px; }
+  .cat-tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px;
+             font-weight: 600; background: #e0f2fe; color: #0369a1; margin: 2px 2px 2px 0; }
+  .cat-tag.no-err { background: #dcfce7; color: #166534; }
 
   /* Empty state */
   .empty { text-align: center; padding: 40px; color: #94a3b8; font-size: 14px; }
@@ -409,6 +422,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       <th class="sortable" data-col="record_type">Type <span class="sort-icon">&#8597;</span></th>
       <th class="sortable" data-col="score">Score <span class="sort-icon">&#8597;</span></th>
       <th>English source</th>
+      <th>Error categories</th>
       <th>Correction</th>
       <th>Comment</th>
       <th class="sortable" data-col="date">Date <span class="sort-icon">&#8597;</span></th>
@@ -579,12 +593,17 @@ function renderTable() {
     const corrPreview = isNoCorr
       ? `<span class="no-corr">No corrections</span>`
       : `<span class="trunc">${esc(trunc(a.correction, 80))}</span>`;
+    const cats = (a.error_cats || []);
+    const catTags = cats.map(c =>
+      `<span class="cat-tag${c==='Nema grešaka'?' no-err':''}">${esc(c)}</span>`
+    ).join("") || `<span style="color:#94a3b8;font-size:11px">—</span>`;
     return `<tr class="ann-row" data-idx="${i}" onclick="toggleExpand(this, ${i})">
       <td style="color:#94a3b8;font-size:12px">${i+1}</td>
       <td><strong>${esc(a.annotator)}</strong></td>
       <td style="font-size:12px">${esc(a.benchmark)}</td>
       <td><span class="type-badge type-${esc(a.record_type)}">${esc(a.record_type)}</span></td>
       <td><span class="badge ${SCORE_COLOR[a.score]||'score-q'}">${esc(scoreLabel(a.score))}</span>${a.flagged ? ' <span class="flag-badge">&#9888;</span>' : ''}</td>
+      <td>${catTags}</td>
       <td><span class="trunc">${esc(trunc(a.source_en, 100))}</span></td>
       <td>${corrPreview}</td>
       <td><span class="trunc">${esc(trunc(a.comment, 80))}</span></td>

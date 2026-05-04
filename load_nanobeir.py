@@ -125,11 +125,28 @@ Ponovo pročitajte samo tekst na srpskom, i proverite:
 - Da li su imenovani entiteti (lična imena, geografske lokacije, institucije) prevedeni tačno
 - Da li u prevodu postoje pravopisne greške
 
-### Korak 3: Unos ispravki, ocene i komentara
+### Korak 3: Unos ocene, vrsta grešaka, ispravki i komentara
+
+**Ocena kvaliteta (1–5):** Izaberite jednu ocenu.
+
+**Vrste grešaka:** Označite sve vrste grešaka koje ste pronašli. Ako prevod nema grešaka, označite samo „Nema grešaka".
+
+| Kategorija | Opis |
+|---|---|
+| Nema grešaka | Prevod je ispravan i prirodan — nema potrebe za ispravkama |
+| Pogrešno značenje | Prevod prenosi drugačije značenje od originalnog teksta |
+| Nedostaje informacija | Deo sadržaja iz originalnog teksta nije preveden |
+| Dodat sadržaj | U prevodu postoji sadržaj koji ne postoji u originalu |
+| Gramatičke greške | Greške u sintaksi ili strukturi rečenice |
+| Deklinacija / konjugacija | Pogrešan rod, broj, padež ili lice glagola |
+| Imenovani entiteti | Pogrešno prevedeno ime osobe, mesta, institucije ili organizacije |
+| Pravopis | Pravopisne greške |
+| Terminologija | Pogrešno prevedeni stručni termini |
+| Neprirodan stil | Sintaktički ispravno, ali zvuči kao mašinski prevod — neprirodni srpski |
 
 **Ispravke:** Srpski prevod je unapred učitan u polje za ispravke. Ispravite ga direktno. Ako prevodu nisu potrebne ispravke, obrišite tekst i unesite tačno: No corrections.
 
-**Komentar:** Napišite kratak komentar u kojem objašnjavate unete ispravke. Ako nema ispravki: No corrections needed.
+**Komentar (opciono):** Napišite komentar samo ako vrste grešaka ne opisuju problem dovoljno.
 
 **Ocena kvaliteta (1–5):**
 
@@ -322,15 +339,26 @@ def build_settings(distribution=None) -> rg.Settings:
                 ],
                 required=True,
             ),
-            rg.TextQuestion(
-                name="comment",
-                title="Komentar",
+            rg.MultiLabelQuestion(
+                name="error_categories",
+                title="Vrste grešaka (označite sve koje se odnose na prevod)",
                 description=(
-                    "Kratko objašnjenje ispravki. "
-                    "Ako nema ispravki, unesite: No corrections needed."
+                    "Ako prevod nema grešaka, označite samo 'Nema grešaka'. "
+                    "Inače označite sve vrste grešaka koje ste pronašli."
                 ),
-                required=False,
-                use_markdown=False,
+                labels=[
+                    "Nema grešaka",
+                    "Pogrešno značenje",
+                    "Nedostaje informacija",
+                    "Dodat sadržaj",
+                    "Gramatičke greške",
+                    "Deklinacija / konjugacija",
+                    "Imenovani entiteti",
+                    "Pravopis",
+                    "Terminologija",
+                    "Neprirodan stil",
+                ],
+                required=True,
             ),
             rg.TextQuestion(
                 name="corrected_text_sr",
@@ -340,6 +368,15 @@ def build_settings(distribution=None) -> rg.Settings:
                     "Ako prevod ne zahteva ispravke, obrišite tekst i unesite: No corrections."
                 ),
                 required=True,
+                use_markdown=False,
+            ),
+            rg.TextQuestion(
+                name="comment",
+                title="Komentar (opciono)",
+                description=(
+                    "Opciono: napišite komentar ako vrste grešaka ne opisuju problem dovoljno."
+                ),
+                required=False,
                 use_markdown=False,
             ),
         ],
