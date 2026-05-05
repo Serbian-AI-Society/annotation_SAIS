@@ -552,7 +552,8 @@ function getFiltered() {
     if (fT && a.record_type !== fT) return false;
     if (fS && a.score !== fS) return false;
     if (fFlagged && !a.flagged) return false;
-    if (fQ && ![a.source_en, a.translation_sr, a.correction, a.comment, a.annotator, a.benchmark]
+    if (fQ && ![a.source_en, a.translation_sr, a.correction, a.comment, a.annotator, a.benchmark,
+               (a.error_cats||[]).join(" ")]
                .some(t => (t||"").toLowerCase().includes(fQ))) return false;
     return true;
   });
@@ -610,7 +611,7 @@ function renderTable() {
       <td style="font-size:12px;color:#64748b;white-space:nowrap">${esc(a.date)}</td>
     </tr>
     <tr class="expand-row" style="display:none">
-      <td colspan="9"></td>
+      <td colspan="10"></td>
     </tr>`;
   }).join("");
 }

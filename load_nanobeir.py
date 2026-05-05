@@ -341,8 +341,8 @@ def build_settings(distribution=None) -> rg.Settings:
                 name="error_categories",
                 title="Vrste grešaka (označite sve koje se odnose na prevod)",
                 description=(
-                    "Ako prevod nema grešaka, označite samo 'Nema grešaka'. "
-                    "Inače označite sve vrste grešaka koje ste pronašli."
+                    "Označite sve vrste grešaka koje ste pronašli. "
+                    "Ako nema grešaka, označite 'Nema grešaka' na dnu liste."
                 ),
                 labels=[
                     "Pogrešno značenje",
