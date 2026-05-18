@@ -88,7 +88,7 @@ log = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Annotation guidelines
 # ---------------------------------------------------------------------------
-GUIDE_URL = "https://docs.google.com/document/d/1XDhdm9bF8habXG9xE-_WlXXy6-BLee1m2gLqQGrU8Mg/edit?tab=t.0#heading=h.vhgcdvffaq5m"
+GUIDE_URL = "https://docs.google.com/document/d/1XDhdm9bF8habXG9xE-_WlXXy6-BLee1m2gLqQGrU8Mg/edit?tab=t.uzfx1koe2s3b"
 GUIDE_LINK_FIELD = f"[Ovde se možete vratiti na uputstva za anotaciju]({GUIDE_URL})"
 
 GUIDELINES = """

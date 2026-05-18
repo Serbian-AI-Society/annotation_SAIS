@@ -5,7 +5,7 @@ Pipeline for loading, annotating, and exporting Serbian machine translations of 
 The goal is to produce a human-verified ground-truth dataset for training and evaluating Serbian text encoder models. Translations were generated with DeepSeek-V3 and are reviewed by human annotators in Argilla.
 
 **Argilla Space:** https://serbian-ai-society-argilla-annotation.hf.space  
-**Annotation guide (for annotators):** https://docs.google.com/document/d/1XDhdm9bF8habXG9xE-_WlXXy6-BLee1m2gLqQGrU8Mg/edit?tab=t.0#heading=h.vhgcdvffaq5m
+**Annotation guide (for annotators):** https://docs.google.com/document/d/1XDhdm9bF8habXG9xE-_WlXXy6-BLee1m2gLqQGrU8Mg/edit?tab=t.uzfx1koe2s3b
 
 ---
 
